@@ -14,6 +14,7 @@ import CapsuleDetail from './pages/CapsuleDetail';
 import AdminDashboard from './pages/AdminDashboard';
 import AdminUsers from './pages/AdminUsers';
 import AdminCapsules from './pages/AdminCapsules';
+import Profile from './pages/Profile';
 
 function App() {
   return (
@@ -72,6 +73,14 @@ function App() {
                 <AdminRoute>
                   <AdminCapsules />
                 </AdminRoute>
+              }
+            />
+            <Route
+              path="/profile"
+              element={
+                <PrivateRoute>
+                  <Profile />
+                </PrivateRoute>
               }
             />
           </Routes>

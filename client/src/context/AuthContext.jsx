@@ -25,7 +25,7 @@ export const AuthProvider = ({ children }) => {
     if (token) {
       try {
         const response = await authAPI.getMe();
-        setUser(response.data);
+        setUser(response.data); // FastAPI /auth/me returns the user object directly
       } catch (error) {
         localStorage.removeItem('token');
         localStorage.removeItem('user');
@@ -36,34 +36,30 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (email, password) => {
     try {
-      console.log('🔐 Attempting login...', email);
       const response = await authAPI.login({ email, password });
-      console.log('✅ Login successful');
-      localStorage.setItem('token', response.data.token);
-      localStorage.setItem('user', JSON.stringify(response.data));
-      setUser(response.data);
+      // FastAPI returns { access_token, user }
+      localStorage.setItem('token', response.data.access_token);
+      localStorage.setItem('user', JSON.stringify(response.data.user));
+      setUser(response.data.user);
       toast.success('Welcome back!');
       return true;
     } catch (error) {
-      console.error('❌ Login failed:', error.response?.data || error.message);
-      toast.error(error.response?.data?.message || 'Login failed');
+      toast.error(error.response?.data?.detail || 'Login failed');
       return false;
     }
   };
 
   const register = async (name, email, password) => {
     try {
-      console.log('📝 Attempting registration...', email);
       const response = await authAPI.register({ name, email, password });
-      console.log('✅ Registration successful');
-      localStorage.setItem('token', response.data.token);
-      localStorage.setItem('user', JSON.stringify(response.data));
-      setUser(response.data);
+      // FastAPI returns { access_token, user }
+      localStorage.setItem('token', response.data.access_token);
+      localStorage.setItem('user', JSON.stringify(response.data.user));
+      setUser(response.data.user);
       toast.success('Account created successfully!');
       return true;
     } catch (error) {
-      console.error('❌ Registration failed:', error.response?.data || error.message);
-      toast.error(error.response?.data?.message || 'Registration failed');
+      toast.error(error.response?.data?.detail || 'Registration failed');
       return false;
     }
   };

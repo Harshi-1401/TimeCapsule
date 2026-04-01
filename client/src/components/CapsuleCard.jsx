@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 
 const CapsuleCard = ({ capsule, onDelete, showOwner = false }) => {
   const [timeLeft, setTimeLeft] = useState('');
+  const MEDIA_URL = import.meta.env.VITE_MEDIA_URL || 'http://localhost:8000';
 
   useEffect(() => {
     if (!capsule.isUnlocked) {
@@ -74,7 +75,7 @@ const CapsuleCard = ({ capsule, onDelete, showOwner = false }) => {
             <div className="mb-3">
               {capsule.mediaType === 'image' && (
                 <img 
-                  src={`http://localhost:5000${capsule.mediaUrl}`} 
+                  src={`${MEDIA_URL}${capsule.mediaUrl}`} 
                   alt="Capsule media" 
                   className="w-full h-48 object-cover rounded-lg"
                 />
@@ -83,19 +84,19 @@ const CapsuleCard = ({ capsule, onDelete, showOwner = false }) => {
                 <video 
                   controls 
                   className="w-full h-48 rounded-lg"
-                  src={`http://localhost:5000${capsule.mediaUrl}`}
+                  src={`${MEDIA_URL}${capsule.mediaUrl}`}
                 />
               )}
               {capsule.mediaType === 'audio' && (
                 <audio 
                   controls 
                   className="w-full"
-                  src={`http://localhost:5000${capsule.mediaUrl}`}
+                  src={`${MEDIA_URL}${capsule.mediaUrl}`}
                 />
               )}
               {capsule.mediaType === 'file' && (
                 <a 
-                  href={`http://localhost:5000${capsule.mediaUrl}`}
+                  href={`${MEDIA_URL}${capsule.mediaUrl}`}
                   download
                   className="flex items-center justify-center space-x-2 bg-purple-50 border-2 border-purple-200 rounded-lg p-4 hover:bg-purple-100 transition"
                 >

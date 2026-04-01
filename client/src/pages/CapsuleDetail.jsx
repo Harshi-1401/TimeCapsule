@@ -9,6 +9,7 @@ const CapsuleDetail = () => {
   const [capsule, setCapsule] = useState(null);
   const [loading, setLoading] = useState(true);
   const [timeLeft, setTimeLeft] = useState('');
+  const MEDIA_URL = import.meta.env.VITE_MEDIA_URL || 'http://localhost:8000';
 
   useEffect(() => {
     fetchCapsule();
@@ -148,7 +149,7 @@ const CapsuleDetail = () => {
                   <div className="bg-gray-50 rounded-lg p-4">
                     {capsule.mediaType === 'image' && (
                       <img
-                        src={`http://localhost:5000${capsule.mediaUrl}`}
+                        src={`${MEDIA_URL}${capsule.mediaUrl}`}
                         alt="Capsule media"
                         className="w-full rounded-lg"
                       />
@@ -157,19 +158,19 @@ const CapsuleDetail = () => {
                       <video
                         controls
                         className="w-full rounded-lg"
-                        src={`http://localhost:5000${capsule.mediaUrl}`}
+                        src={`${MEDIA_URL}${capsule.mediaUrl}`}
                       />
                     )}
                     {capsule.mediaType === 'audio' && (
                       <audio
                         controls
                         className="w-full"
-                        src={`http://localhost:5000${capsule.mediaUrl}`}
+                        src={`${MEDIA_URL}${capsule.mediaUrl}`}
                       />
                     )}
                     {capsule.mediaType === 'file' && (
                       <a 
-                        href={`http://localhost:5000${capsule.mediaUrl}`}
+                        href={`${MEDIA_URL}${capsule.mediaUrl}`}
                         download
                         className="flex items-center justify-center space-x-3 bg-purple-50 border-2 border-purple-200 rounded-lg p-6 hover:bg-purple-100 transition"
                       >

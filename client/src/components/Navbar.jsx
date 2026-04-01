@@ -1,19 +1,18 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import ProfileDropdown from './ProfileDropdown';
 
 const Navbar = () => {
   const { user, logout, isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  const handleLogout = () => {
+  const closeMobileMenu = () => setMobileMenuOpen(false);
+
+  const handleMobileLogout = () => {
     logout();
     navigate('/login');
-    setMobileMenuOpen(false);
-  };
-
-  const closeMobileMenu = () => {
     setMobileMenuOpen(false);
   };
 
@@ -47,15 +46,7 @@ const Navbar = () => {
                     Admin
                   </Link>
                 )}
-                <div className="flex items-center space-x-4">
-                  <span className="text-gray-600 text-sm">Hi, {user?.name}</span>
-                  <button
-                    onClick={handleLogout}
-                    className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition"
-                  >
-                    Logout
-                  </button>
-                </div>
+                <ProfileDropdown />
               </>
             ) : (
               <>
@@ -96,6 +87,13 @@ const Navbar = () => {
                   Hi, {user?.name}
                 </div>
                 <Link
+                  to="/profile"
+                  className="px-4 py-2 text-gray-700 hover:bg-purple-50 hover:text-purple-600 transition rounded"
+                  onClick={closeMobileMenu}
+                >
+                  My Profile
+                </Link>
+                <Link
                   to="/dashboard"
                   className="px-4 py-2 text-gray-700 hover:bg-purple-50 hover:text-purple-600 transition rounded"
                   onClick={closeMobileMenu}
@@ -126,7 +124,7 @@ const Navbar = () => {
                   </Link>
                 )}
                 <button
-                  onClick={handleLogout}
+                  onClick={handleMobileLogout}
                   className="mx-4 mt-2 bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition"
                 >
                   Logout

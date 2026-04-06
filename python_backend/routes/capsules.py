@@ -19,13 +19,19 @@ MAX_FILE_BYTES = 5 * 1024 * 1024
 
 # ── Helpers ────────────────────────────────────────────────────────────────────
 def capsule_to_dict(c: Capsule) -> dict:
+    # Handle both old file-path URLs and new base64 data URIs
+    media_url = c.media_url
+    if media_url and media_url.startswith("/uploads/"):
+        # Old format — file no longer exists on Render, return None
+        media_url = None
+
     return {
         "_id": str(c.id),
         "id": c.id,
         "title": c.title,
         "message": c.message,
-        "mediaUrl": c.media_url,        # base64 data URI — works everywhere, no file server needed
-        "mediaType": c.media_type,
+        "mediaUrl": media_url,
+        "mediaType": c.media_type if media_url else None,
         "mediaFilename": c.media_filename,
         "unlockDate": c.unlock_date.isoformat() if c.unlock_date else None,
         "isPublic": c.is_public,

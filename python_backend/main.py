@@ -35,6 +35,10 @@ def run_migrations():
             pass  # Column already exists
 
 
+# Run migrations immediately at startup (not just in lifespan)
+run_migrations()
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     run_migrations()

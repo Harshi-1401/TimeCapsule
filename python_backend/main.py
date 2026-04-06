@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from contextlib import asynccontextmanager
+from sqlalchemy import text
 import os
 
 from database.db import engine, Base
@@ -14,12 +15,31 @@ from utils.scheduler import start_scheduler, stop_scheduler
 Base.metadata.create_all(bind=engine)
 
 
+def run_migrations():
+    """Add any missing columns that were added after initial deployment."""
+    with engine.connect() as conn:
+        # Add media_filename column if missing
+        try:
+            conn.execute(text("ALTER TABLE capsules ADD COLUMN media_filename VARCHAR(255)"))
+            conn.commit()
+            print("✅ Migration: added media_filename column")
+        except Exception:
+            pass  # Column already exists
+
+        # Add profile_image column to users if missing
+        try:
+            conn.execute(text("ALTER TABLE users ADD COLUMN profile_image VARCHAR(500)"))
+            conn.commit()
+            print("✅ Migration: added profile_image column")
+        except Exception:
+            pass  # Column already exists
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup
+    run_migrations()
     start_scheduler()
     yield
-    # Shutdown
     stop_scheduler()
 
 

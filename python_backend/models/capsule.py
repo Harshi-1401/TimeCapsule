@@ -11,7 +11,7 @@ class Capsule(Base):
     id = Column(Integer, primary_key=True, index=True)
     title = Column(String(100), nullable=False)
     message = Column(Text, nullable=True)
-    media_url = Column(String(500), nullable=True)   # base64 data URI or external URL
+    media_url = Column(Text, nullable=True)          # base64 data URI — must be Text, not String
     media_type = Column(String(20), nullable=True)   # image/video/audio/file
     media_filename = Column(String(255), nullable=True)  # original filename for downloads
     unlock_date = Column(DateTime(timezone=True), nullable=False)  # always UTC

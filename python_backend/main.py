@@ -18,6 +18,14 @@ Base.metadata.create_all(bind=engine)
 def run_migrations():
     """Add any missing columns that were added after initial deployment."""
     with engine.connect() as conn:
+        # Fix media_url column to TEXT (base64 data URIs are too large for VARCHAR)
+        try:
+            conn.execute(text("ALTER TABLE capsules ALTER COLUMN media_url TYPE TEXT"))
+            conn.commit()
+            print("✅ Migration: media_url column changed to TEXT")
+        except Exception:
+            pass  # Already TEXT or SQLite (SQLite ignores column types anyway)
+
         # Add media_filename column if missing
         try:
             conn.execute(text("ALTER TABLE capsules ADD COLUMN media_filename VARCHAR(255)"))

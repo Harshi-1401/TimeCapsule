@@ -1,7 +1,7 @@
 import os
-import shutil
+import base64
 from datetime import datetime, timezone
-from typing import Optional, List
+from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, status
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
@@ -13,20 +13,20 @@ from utils.auth import get_current_user
 
 router = APIRouter(prefix="/api/capsules", tags=["Capsules"])
 
-UPLOAD_DIR = "uploads"
-os.makedirs(UPLOAD_DIR, exist_ok=True)
+# Max file size: 5MB (base64 stored in DB)
+MAX_FILE_BYTES = 5 * 1024 * 1024
 
 
 # ── Helpers ────────────────────────────────────────────────────────────────────
 def capsule_to_dict(c: Capsule) -> dict:
-    """Convert Capsule ORM object to a dict. Returns relative mediaUrl path."""
     return {
         "_id": str(c.id),
         "id": c.id,
         "title": c.title,
         "message": c.message,
-        "mediaUrl": c.media_url,  # relative path e.g. /uploads/1_123456.jpg
+        "mediaUrl": c.media_url,        # base64 data URI — works everywhere, no file server needed
         "mediaType": c.media_type,
+        "mediaFilename": c.media_filename,
         "unlockDate": c.unlock_date.isoformat() if c.unlock_date else None,
         "isPublic": c.is_public,
         "isEncrypted": c.is_encrypted,
@@ -39,17 +39,41 @@ def capsule_to_dict(c: Capsule) -> dict:
 
 
 def _auto_unlock(capsule: Capsule):
-    """Mark capsule as unlocked if its unlock date has passed.
-    Always compare as naive datetimes to avoid tz offset issues
-    when the frontend sends local time with no timezone info.
-    """
-    if not capsule.is_unlocked:
-        unlock_dt = capsule.unlock_date
-        # Strip timezone info so comparison is always naive local time
-        if unlock_dt.tzinfo is not None:
-            unlock_dt = unlock_dt.replace(tzinfo=None)
-        if datetime.now() >= unlock_dt:
-            capsule.is_unlocked = True
+    """Unlock capsule if unlock_date has passed. All datetimes in UTC."""
+    if capsule.is_unlocked:
+        return
+    now_utc = datetime.now(timezone.utc)
+    unlock_dt = capsule.unlock_date
+    # Ensure unlock_dt is timezone-aware UTC
+    if unlock_dt.tzinfo is None:
+        unlock_dt = unlock_dt.replace(tzinfo=timezone.utc)
+    if now_utc >= unlock_dt:
+        capsule.is_unlocked = True
+
+
+def _detect_media_type(filename: str) -> str:
+    ext = os.path.splitext(filename)[1].lower()
+    if ext in [".jpg", ".jpeg", ".png", ".gif", ".webp"]:
+        return "image"
+    elif ext in [".mp4", ".mov", ".avi", ".webm"]:
+        return "video"
+    elif ext in [".mp3", ".wav", ".ogg", ".m4a"]:
+        return "audio"
+    return "file"
+
+
+def _mime_type(filename: str) -> str:
+    ext = os.path.splitext(filename)[1].lower()
+    mime_map = {
+        ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".png": "image/png",
+        ".gif": "image/gif", ".webp": "image/webp",
+        ".mp4": "video/mp4", ".mov": "video/quicktime",
+        ".avi": "video/x-msvideo", ".webm": "video/webm",
+        ".mp3": "audio/mpeg", ".wav": "audio/wav",
+        ".ogg": "audio/ogg", ".m4a": "audio/mp4",
+        ".pdf": "application/pdf",
+    }
+    return mime_map.get(ext, "application/octet-stream")
 
 
 # ── Public capsules (no auth) ──────────────────────────────────────────────────
@@ -74,28 +98,34 @@ async def create_capsule(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    # Parse and strip timezone — store as naive local datetime for consistent comparison
-    unlock_dt = datetime.fromisoformat(unlockDate.replace("Z", ""))
-    unlock_dt = unlock_dt.replace(tzinfo=None)
+    # Parse unlock date — frontend sends ISO string (local or UTC)
+    # Normalize to UTC-aware datetime
+    raw = unlockDate.replace("Z", "+00:00")
+    try:
+        unlock_dt = datetime.fromisoformat(raw)
+    except ValueError:
+        unlock_dt = datetime.fromisoformat(unlockDate.replace("Z", ""))
+        unlock_dt = unlock_dt.replace(tzinfo=timezone.utc)
+
+    if unlock_dt.tzinfo is None:
+        unlock_dt = unlock_dt.replace(tzinfo=timezone.utc)
 
     media_url = None
     media_type = None
-    if media and media.filename:
-        ext = os.path.splitext(media.filename)[1].lower()
-        filename = f"{current_user.id}_{int(datetime.now().timestamp())}{ext}"
-        filepath = os.path.join(UPLOAD_DIR, filename)
-        with open(filepath, "wb") as f:
-            shutil.copyfileobj(media.file, f)
-        media_url = f"/uploads/{filename}"
+    media_filename = None
 
-        if ext in [".jpg", ".jpeg", ".png", ".gif", ".webp"]:
-            media_type = "image"
-        elif ext in [".mp4", ".mov", ".avi", ".webm"]:
-            media_type = "video"
-        elif ext in [".mp3", ".wav", ".ogg", ".m4a"]:
-            media_type = "audio"
-        else:
-            media_type = "file"
+    if media and media.filename:
+        file_bytes = await media.read()
+        if len(file_bytes) > MAX_FILE_BYTES:
+            raise HTTPException(
+                status_code=400,
+                detail="File too large. Maximum size is 5MB."
+            )
+        media_type = _detect_media_type(media.filename)
+        mime = _mime_type(media.filename)
+        b64 = base64.b64encode(file_bytes).decode("utf-8")
+        media_url = f"data:{mime};base64,{b64}"   # self-contained data URI
+        media_filename = media.filename
 
     capsule = Capsule(
         title=title,
@@ -105,6 +135,7 @@ async def create_capsule(
         is_encrypted=isEncrypted.lower() == "true",
         media_url=media_url,
         media_type=media_type,
+        media_filename=media_filename,
         user_id=current_user.id,
     )
     db.add(capsule)
@@ -146,11 +177,6 @@ def delete_capsule(capsule_id: int, db: Session = Depends(get_db),
     ).first()
     if not capsule:
         raise HTTPException(status_code=404, detail="Capsule not found")
-    # Remove uploaded file if exists
-    if capsule.media_url:
-        filepath = capsule.media_url.lstrip("/")
-        if os.path.exists(filepath):
-            os.remove(filepath)
     db.delete(capsule)
     db.commit()
 
@@ -158,6 +184,7 @@ def delete_capsule(capsule_id: int, db: Session = Depends(get_db),
 # ── Report capsule ─────────────────────────────────────────────────────────────
 class ReportPayload(BaseModel):
     reason: str
+
 
 @router.post("/{capsule_id}/report")
 def report_capsule(capsule_id: int, payload: ReportPayload,

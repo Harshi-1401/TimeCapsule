@@ -4,8 +4,21 @@ from database.db import SessionLocal
 from models.capsule import Capsule
 from models.user import User
 from utils.email import send_unlock_email
+import urllib.request
+import os
 
 scheduler = BackgroundScheduler()
+
+
+def keep_alive():
+    """Ping own health endpoint so Render free tier doesn't spin down."""
+    url = os.getenv("RENDER_EXTERNAL_URL")
+    if url:
+        try:
+            urllib.request.urlopen(f"{url}/api/health", timeout=10)
+            print("💓 Keep-alive ping sent")
+        except Exception as e:
+            print(f"⚠️ Keep-alive ping failed: {e}")
 
 
 def check_and_unlock_capsules():
@@ -58,6 +71,13 @@ def start_scheduler():
         trigger="interval",
         minutes=1,
         id="unlock_capsules",
+        replace_existing=True,
+    )
+    scheduler.add_job(
+        keep_alive,
+        trigger="interval",
+        minutes=14,
+        id="keep_alive",
         replace_existing=True,
     )
     scheduler.start()

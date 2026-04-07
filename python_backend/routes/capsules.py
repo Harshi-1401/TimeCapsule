@@ -39,14 +39,14 @@ def capsule_to_dict(c: Capsule) -> dict:
         "mediaType": media_type,
         "mediaFilename": media_filename,
         "hasLegacyMedia": is_legacy_file,  # tells frontend file existed but is gone
-        "unlockDate": c.unlock_date.isoformat() if c.unlock_date else None,
+        "unlockDate": c.unlock_date.isoformat().replace("+00:00", "Z") if c.unlock_date else None,
         "isPublic": c.is_public,
         "isEncrypted": c.is_encrypted,
         "isUnlocked": c.is_unlocked,
         "isReviewed": c.is_reviewed,
         "reportCount": c.report_count,
         "userId": c.user_id,
-        "createdAt": c.created_at.isoformat() if c.created_at else None,
+        "createdAt": c.created_at.isoformat().replace("+00:00", "Z") if c.created_at else None,
     }
 
 

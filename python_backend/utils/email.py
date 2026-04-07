@@ -11,6 +11,7 @@ SMTP_PORT = int(os.getenv("SMTP_PORT", 587))
 SMTP_USER = os.getenv("SMTP_USER", "")
 SMTP_PASSWORD = os.getenv("SMTP_PASSWORD", "")
 EMAIL_FROM = os.getenv("EMAIL_FROM", SMTP_USER)
+FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:5173")
 
 
 def send_unlock_email(to_email: str, capsule_title: str) -> bool:
@@ -28,6 +29,8 @@ def send_unlock_email(to_email: str, capsule_title: str) -> bool:
         msg["From"] = EMAIL_FROM
         msg["To"] = to_email
 
+        dashboard_url = f"{FRONTEND_URL}/dashboard"
+
         # Plain text version
         text = f"""
 Hi there!
@@ -36,7 +39,7 @@ Your time capsule "{capsule_title}" has just been unlocked!
 
 Go to your dashboard to read your message and view any media you saved.
 
-http://localhost:5173/dashboard
+{dashboard_url}
 
 — The Time Capsule Team
         """.strip()
@@ -55,7 +58,7 @@ http://localhost:5173/dashboard
       <p style="font-size: 15px; color: #555;">
         Head over to your dashboard to read your message and view any media you saved.
       </p>
-      <a href="http://localhost:5173/dashboard"
+      <a href="{dashboard_url}"
          style="display: inline-block; margin-top: 16px; padding: 12px 28px;
                 background: #764ba2; color: white; text-decoration: none;
                 border-radius: 8px; font-weight: bold;">

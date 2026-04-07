@@ -185,6 +185,7 @@ const Dashboard = () => {
                 key={capsule._id}
                 capsule={capsule}
                 onDelete={handleDelete}
+                onUnlocked={fetchCapsules}
               />
             ))}
           </div>

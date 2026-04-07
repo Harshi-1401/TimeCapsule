@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 
-const CapsuleCard = ({ capsule, onDelete, showOwner = false }) => {
+const CapsuleCard = ({ capsule, onDelete, onUnlocked, showOwner = false }) => {
   const [timeLeft, setTimeLeft] = useState('');
 
   useEffect(() => {
@@ -14,6 +14,8 @@ const CapsuleCard = ({ capsule, onDelete, showOwner = false }) => {
         if (distance < 0) {
           setTimeLeft('Unlocking soon...');
           clearInterval(timer);
+          // Notify parent to refetch so the card flips to unlocked state
+          if (onUnlocked) onUnlocked();
         } else {
           const days = Math.floor(distance / (1000 * 60 * 60 * 24));
           const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
@@ -29,7 +31,11 @@ const CapsuleCard = ({ capsule, onDelete, showOwner = false }) => {
   }, [capsule.isUnlocked, capsule.unlockDate]);
 
   const formatDate = (date) => {
-    return new Date(date).toLocaleDateString('en-US', {
+    // Ensure UTC strings are parsed correctly by appending Z if missing
+    const normalized = typeof date === 'string' && !date.endsWith('Z') && !date.includes('+')
+      ? date + 'Z'
+      : date;
+    return new Date(normalized).toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'long',
       day: 'numeric',
